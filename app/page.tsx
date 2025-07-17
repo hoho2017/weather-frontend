@@ -113,7 +113,7 @@ export default function Home() {
     const es = new EventSource(url);
     es.addEventListener("image", (event) => {
       const data = (event as MessageEvent).data;
-      const src = `http://47.96.139.248:8000${data}`;
+      const src = `/api/image-proxy?path=${encodeURIComponent(data)}`;
       setImages(prev => [...prev, src]);
     });
     es.onerror = () => {
