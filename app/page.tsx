@@ -1,20 +1,17 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 
-// 轮播图组件，底部为时间线
 function Carousel({ images }: { images: string[] }) {
   const [current, setCurrent] = useState(0);
   const [dragging, setDragging] = useState(false);
   const timelineRef = useRef<HTMLDivElement>(null);
 
-  // 提取时间字符串
   function extractTime(url: string) {
     const match = url.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2})/);
     return match ? match[1] : "";
   }
   const imageTimes = images.map(extractTime);
 
-  // 自动播放（拖动时暂停）
   useEffect(() => {
     if (images.length === 0 || dragging) return;
     const timer = setInterval(() => {
@@ -23,7 +20,6 @@ function Carousel({ images }: { images: string[] }) {
     return () => clearInterval(timer);
   }, [images, dragging]);
 
-  // 拖动滑块
   const onDragStart = (e: React.MouseEvent) => {
     setDragging(true);
     document.body.style.userSelect = "none";
@@ -55,7 +51,6 @@ function Carousel({ images }: { images: string[] }) {
 
   if (!images.length) return <div className="h-64 flex items-center justify-center text-gray-400">暂无图片</div>;
 
-  // 滑块位置百分比
   const percent = images.length === 1 ? 0 : current / (images.length - 1);
 
   return (
@@ -79,21 +74,17 @@ function Carousel({ images }: { images: string[] }) {
           <span className="text-2xl">⟩</span>
         </button>
       </div>
-      {/* 时间线+滑块 */}
       <div className="w-full flex flex-col items-center mt-8">
         <div
           ref={timelineRef}
           className="relative w-full h-6 flex items-center"
           style={{ touchAction: "none" }}
         >
-          {/* 直线 */}
           <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-gray-300 rounded" />
-          {/* 滑块 */}
           <div
             className="absolute top-1/2 -translate-y-1/2"
             style={{ left: `calc(${percent * 100}% - 20px)` }}
           >
-            {/* 空心圆形按钮滑块 */}
             <div
               className="w-4 h-4 rounded-full bg-white border-2 border-[#91caff] bg-transparent cursor-pointer transition-all duration-150 relative select-none"
               onMouseDown={onDragStart}
@@ -118,11 +109,11 @@ export default function Home() {
 
   const fetchImages = () => {
     setImages([]);
-    const url = `https://weather-backend-tsxw.onrender.com/images?lat=${lat}&lon=${lon}`;
+    const url = `http://47.96.139.248:8000/images?lat=${lat}&lon=${lon}`;
     const es = new EventSource(url);
     es.addEventListener("image", (event) => {
       const data = (event as MessageEvent).data;
-      const src = `https://weather-backend-tsxw.onrender.com${data}`;
+      const src = `http://47.96.139.248:8000${data}`;
       setImages(prev => [...prev, src]);
     });
     es.onerror = () => {
