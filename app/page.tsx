@@ -1,103 +1,163 @@
-import Image from "next/image";
+"use client";
+import React, { useState, useEffect, useRef } from "react";
+
+// 轮播图组件，底部为时间线
+function Carousel({ images }: { images: string[] }) {
+  const [current, setCurrent] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const timelineRef = useRef<HTMLDivElement>(null);
+
+  // 提取时间字符串
+  function extractTime(url: string) {
+    const match = url.match(/(\d{4}-\d{2}-\d{2} \d{2}:\d{2})/);
+    return match ? match[1] : "";
+  }
+  const imageTimes = images.map(extractTime);
+
+  // 自动播放（拖动时暂停）
+  useEffect(() => {
+    if (images.length === 0 || dragging) return;
+    const timer = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % images.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [images, dragging]);
+
+  // 拖动滑块
+  const onDragStart = (e: React.MouseEvent) => {
+    setDragging(true);
+    document.body.style.userSelect = "none";
+  };
+  const onDrag = (e: React.MouseEvent) => {
+    if (!dragging || !timelineRef.current) return;
+    const rect = timelineRef.current.getBoundingClientRect();
+    let x = e.clientX - rect.left;
+    x = Math.max(0, Math.min(x, rect.width));
+    const percent = x / rect.width;
+    const idx = Math.round(percent * (images.length - 1));
+    setCurrent(idx);
+  };
+  const onDragEnd = () => {
+    setDragging(false);
+    document.body.style.userSelect = "";
+  };
+  useEffect(() => {
+    if (!dragging) return;
+    const move = (e: MouseEvent) => onDrag(e as any);
+    const up = () => onDragEnd();
+    window.addEventListener("mousemove", move);
+    window.addEventListener("mouseup", up);
+    return () => {
+      window.removeEventListener("mousemove", move);
+      window.removeEventListener("mouseup", up);
+    };
+  }, [dragging]);
+
+  if (!images.length) return <div className="h-64 flex items-center justify-center text-gray-400">暂无图片</div>;
+
+  // 滑块位置百分比
+  const percent = images.length === 1 ? 0 : current / (images.length - 1);
+
+  return (
+    <div className="w-full max-w-2xl mx-auto rounded-lg shadow-lg bg-white p-4">
+      <div className="relative h-80 flex items-center justify-center overflow-hidden rounded-lg bg-gray-100">
+        <button
+          className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full shadow p-2 z-10"
+          onClick={() => setCurrent((current - 1 + images.length) % images.length)}
+        >
+          <span className="text-2xl">⟨</span>
+        </button>
+        <img
+          src={images[current]}
+          className="h-full max-h-72 w-auto mx-auto object-contain transition-all duration-300 rounded-lg shadow"
+          alt="carousel"
+        />
+        <button
+          className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full shadow p-2 z-10"
+          onClick={() => setCurrent((current + 1) % images.length)}
+        >
+          <span className="text-2xl">⟩</span>
+        </button>
+      </div>
+      {/* 时间线+滑块 */}
+      <div className="w-full flex flex-col items-center mt-8">
+        <div
+          ref={timelineRef}
+          className="relative w-full h-6 flex items-center"
+          style={{ touchAction: "none" }}
+        >
+          {/* 直线 */}
+          <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-1 bg-gray-300 rounded" />
+          {/* 滑块 */}
+          <div
+            className="absolute top-1/2 -translate-y-1/2"
+            style={{ left: `calc(${percent * 100}% - 20px)` }}
+          >
+            {/* 空心圆形按钮滑块 */}
+            <div
+              className="w-4 h-4 rounded-full bg-white border-2 border-[#91caff] bg-transparent cursor-pointer transition-all duration-150 relative select-none"
+              onMouseDown={onDragStart}
+              style={{ transition: dragging ? "none" : "left 0.2s" }}
+            >
+            </div>
+          </div>
+        </div>
+        <div className="mt-2 text-sm text-gray-500">{imageTimes[current]}</div>
+      </div>
+      <div className="text-center text-sm text-gray-500 mt-2">
+        {current + 1} / {images.length}
+      </div>
+    </div>
+  );
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [lat, setLat] = useState("31.23");
+  const [lon, setLon] = useState("121.47");
+  const [images, setImages] = useState<string[]>([]);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+  const fetchImages = () => {
+    setImages([]);
+    const url = `https://weather-backend-tsxw.onrender.com/images?lat=${lat}&lon=${lon}`;
+    const es = new EventSource(url);
+    es.addEventListener("image", (event) => {
+      const data = (event as MessageEvent).data;
+      const src = `https://weather-backend-tsxw.onrender.com${data}`;
+      setImages(prev => [...prev, src]);
+    });
+    es.onerror = () => {
+      es.close();
+    };
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex flex-col items-center justify-start py-8">
+      <form
+        className="mb-8 flex flex-col sm:flex-row gap-3 sm:gap-4 items-center bg-white/90 rounded-xl shadow px-6 py-5 w-full max-w-xl"
+        onSubmit={e => { e.preventDefault(); fetchImages(); }}
+      >
+        纬度:<input
+          type="text"
+          value={lat}
+          onChange={(e) => setLat(e.target.value)}
+          placeholder="纬度"
+          className="flex-1 min-w-0 border border-blue-200 rounded-lg px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-300 bg-blue-50 placeholder:text-blue-300 transition"
+        />
+       经度:<input
+          type="text"
+          value={lon}
+          onChange={(e) => setLon(e.target.value)}
+          placeholder="经度"
+          className="flex-1 min-w-0 border border-blue-200 rounded-lg px-4 py-2 text-base focus:outline-none focus:ring-2 focus:ring-blue-300 bg-blue-50 placeholder:text-blue-300 transition"
+        />
+        <button
+          type="submit"
+          className="w-full sm:w-auto bg-gradient-to-r from-blue-400 to-blue-600 hover:from-blue-500 hover:to-blue-700 text-white font-bold px-8 py-2 rounded-lg shadow-md transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-400"
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          获取图像
+        </button>
+      </form>
+      <Carousel images={images} />
     </div>
   );
 }
