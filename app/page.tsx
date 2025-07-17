@@ -106,20 +106,43 @@ export default function Home() {
   const [lat, setLat] = useState("31.23");
   const [lon, setLon] = useState("121.47");
   const [images, setImages] = useState<string[]>([]);
+  const [eventSource, setEventSource] = useState<EventSource | null>(null);
 
   const fetchImages = () => {
+    // 关闭之前的连接
+    if (eventSource) {
+      eventSource.close();
+    }
+    
     setImages([]);
     const url = `/api/proxy?lat=${lat}&lon=${lon}`;
     const es = new EventSource(url);
+    setEventSource(es);
+    
     es.addEventListener("image", (event) => {
       const data = (event as MessageEvent).data;
       const src = `/api/image-proxy?path=${encodeURIComponent(data)}`;
       setImages(prev => [...prev, src]);
     });
+    
     es.onerror = () => {
       es.close();
+      setEventSource(null);
     };
+    
+    es.addEventListener("close", () => {
+      setEventSource(null);
+    });
   };
+
+  // 组件卸载时清理连接
+  useEffect(() => {
+    return () => {
+      if (eventSource) {
+        eventSource.close();
+      }
+    };
+  }, [eventSource]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex flex-col items-center justify-start py-8">
