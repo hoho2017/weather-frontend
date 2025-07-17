@@ -109,7 +109,7 @@ export default function Home() {
 
   const fetchImages = () => {
     setImages([]);
-    const url = `http://47.96.139.248:8000/images?lat=${lat}&lon=${lon}`;
+    const url = `/api/proxy?lat=${lat}&lon=${lon}`;
     const es = new EventSource(url);
     es.addEventListener("image", (event) => {
       const data = (event as MessageEvent).data;
