@@ -143,6 +143,9 @@ export default function Home() {
       }
     };
   }, [eventSource]);
+  useEffect(() => {
+    fetchImages()
+  }, []);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-100 flex flex-col items-center justify-start py-8">
